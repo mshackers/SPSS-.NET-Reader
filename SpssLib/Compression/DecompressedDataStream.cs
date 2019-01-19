@@ -19,6 +19,7 @@ namespace SpssLib.Compression
         private byte[][] _elementBuffer = new byte[8][];
         private int _elementBufferPosition = 0;
         private int _elementBufferSize;
+        private bool _eof = false;
         private int _inElementPosition = 0; // for those rare cases where we end up in the middle of an element.
 
         private byte[] _systemMissingBytes;
@@ -78,6 +79,7 @@ namespace SpssLib.Compression
                 else
                 {
                     // End of stream:
+                    _eof = false;
                     return 0;
                 }
             }
@@ -101,6 +103,7 @@ namespace SpssLib.Compression
                     else
                     {
                         // End of stream:
+                        _eof = false;
                         return 0;
                     }
                 }
@@ -143,6 +146,11 @@ namespace SpssLib.Compression
 
         private bool ParseNextInstructionSet()
         {
+            if (_eof)
+            {
+                return false;
+            }
+
             byte[] instructionSet = _reader.ReadBytes(InstructionSetByteSize);
 
             if (instructionSet.Length < InstructionSetByteSize)
@@ -171,8 +179,9 @@ namespace SpssLib.Compression
                 }
                 else if (instruction == 252) // end of file
                 {
+                    _eof = true;
                     _elementBufferSize = bufferPosition;
-                    return false;
+                    return true;
                 }
                 else if (instruction == 253) // uncompressed value
                 {
